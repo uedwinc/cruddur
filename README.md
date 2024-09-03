@@ -24,4 +24,4 @@ Projects will include:
 
 The `/journal` directory contains
 
-- [ ] [Setting Up and Architecture](journal/week0.md)
+- [ ] [Setting Up and Architecture](journal/week1.md)
