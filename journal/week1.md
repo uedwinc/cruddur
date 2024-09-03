@@ -13,11 +13,12 @@
 3. Configure AWS using environmental variables: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
 
 4. Persist the environment variables using:
-    ```
-    gp env AWS_ACCESS_KEY_ID="your-access-key-id"
-    gp env AWS_SECRET_ACCESS_KEY="your-secret-access-key"
-    gp env AWS_DEFAULT_REGION="your-region"
-    ```
+
+  ```
+  gp env AWS_ACCESS_KEY_ID="your-access-key-id"
+  gp env AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+  gp env AWS_DEFAULT_REGION="your-region"
+  ```
 
 5. Confirm configuration with some basic cli commands:
 
@@ -31,7 +32,7 @@
 
 - If you want to add this to environment variables, use `export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)`
 
-- You can save to gitpod env variables using `gp env AWS_ACCOUNT_ID="account-id-here"`
+- You can save to gitpod env variables using `gp env AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"`
 
 - See https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html for other cli queries
 
@@ -49,3 +50,47 @@ tasks:
       sudo ./aws/install
       cd $THEIA_WORKSPACE_ROOT
 ```
+
+## Setup Billing
+
+### 1. Using CloudFormation
+
+1. First create an s3 bucket for all your CloudFormation templates
+
+```sh
+aws s3api create-bucket \
+  --bucket crd-cfn-artifacts \
+  --region us-east-2 \
+  --create-bucket-configuration LocationConstraint=us-east-2
+```
+
+2. Create the [budget template](/aws/cfn/budget/template.yaml) and the [alarm template](/aws/cfn/alarm/template.yaml).
+
+3. Run the following commands to deploy:
+
+```sh
+aws cloudformation deploy \
+  --stack-name crd-budget \
+  --s3-bucket crd-cfn-artifacts \
+  --s3-prefix budget \
+  --region $AWS_DEFAULT_REGION \
+  --template-file /workspace/cruddur/aws/cfn/budget/template.yaml \
+  --no-execute-changeset \
+  --tags group=cruddur-budget
+```
+
+```sh
+aws cloudformation deploy \
+  --stack-name crd-alarm \
+  --s3-bucket crd-cfn-artifacts \
+  --s3-prefix alarm \
+  --region $AWS_DEFAULT_REGION \
+  --template-file /workspace/cruddur/aws/cfn/alarm/template.yaml \
+  --no-execute-changeset \
+  --tags group=cruddur-alarm
+```
+
+4. Go to the CloudFormation console and execute the changeset to deploy the resources (this is only because we added the `--no-execute-changeset` flag) in the deployment command. You can remove to deploy directly.
+
+- Make sure to either confirm SNS subscription for billing-alarm on the console or open the mail received for the subscription and confirm.
+

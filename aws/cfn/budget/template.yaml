@@ -1,0 +1,39 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Cruddur Budget with Notification"
+Resources:
+  CruddurBudget:
+    Type: "AWS::Budgets::Budget"
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: 5
+          Unit: USD
+        TimeUnit: MONTHLY
+        TimePeriod:
+          Start: 1725321600
+          End: 1756857600
+        BudgetType: COST
+        CostFilters:
+          AZ:
+            - us-east-2
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 4
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: uedwinc@gmail.com
+            - SubscriptionType: EMAIL
+              Address: edwinbuike@gmail.com
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 2
+          Subscribers:
+          - SubscriptionType: EMAIL
+            Address: edwinbuike@gmail.com
+Outputs:
+  BudgetId:
+    Value: !Ref CruddurBudget
