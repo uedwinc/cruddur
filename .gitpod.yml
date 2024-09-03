@@ -9,8 +9,3 @@ tasks:
       sudo ./aws/install
       cd $THEIA_WORKSPACE_ROOT
 #      bash bin/ecr/login
-
-vscode:
-  extensions:
-    - 42Crunch.vscode-openapi
-    - cweijan.vscode-mysql-client2
