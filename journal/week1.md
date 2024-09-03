@@ -94,3 +94,54 @@ aws cloudformation deploy \
 
 - Make sure to either confirm SNS subscription for billing-alarm on the console or open the mail received for the subscription and confirm.
 
+### 2. Using the CLI
+
+#### Configure budget and notification
+
+1. Follow examples here: https://docs.aws.amazon.com/cli/latest/reference/budgets/create-budget.html#examples
+
+2. Create [budget.json](/aws/json/budget.json) and [budget-notifications-with-subscribers.json](/aws/json/budget-notifications-with-subscribers.json)
+
+3. Confirm AWS_ACCOUNT_ID env variable is set
+
+4. Run the following command
+
+```
+aws budgets create-budget \
+  --account-id $AWS_ACCOUNT_ID \
+  --budget file://aws/json/budget.json \
+  --notifications-with-subscribers file://aws/json/budget-notifications-with-subscribers.json
+```
+5. Confirm on the console
+
+#### Configure CloudWatch Alarm
+
+1. First create an SNS Topic
+  ```
+  aws sns create-topic --name billing-alarm
+  ```
+
+- This will return a TopicARN
+
+2. Next, we'll create a subscription by supplying the TopicARN and our Email
+
+```
+aws sns subscribe \
+    --topic-arn TopicARN \
+    --protocol email \
+    --notification-endpoint your@email.com
+```
+
+3. You can either confirm subscription for SNS on the Amazon SNS console or open the mail received for the subscription and confirm.
+
+4. Create an [alarm-config.json](/aws/json/alarm-config.json) file
+
+- Follow doc here: https://repost.aws/knowledge-center/cloudwatch-estimatedcharges-alarm
+
+5. Run the following command to create the alarm:
+
+```sh
+aws cloudwatch put-metric-alarm --cli-input-json file://aws/json/alarm-config.json
+```
+
+6. Go to Cloudwatch to confirm
