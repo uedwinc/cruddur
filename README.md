@@ -1,5 +1,11 @@
 # AWS Cloud Project
 
+![Static Badge](https://img.shields.io/badge/Status-In_Progress-8918F4?style=for-the-badge)
+
+![Static Badge](https://img.shields.io/badge/Status-In_Progress-8918F4?style=flat)
+
+![Static Badge](https://img.shields.io/badge/Status-In_Progress-blue?style=social)
+
 Application: **Cruddur**
 
 Building Cruddur, a micro-bloging platform with ephemeral/expiring posts. Meant for anyone who doesn't want to maintain a permanent presence online.
