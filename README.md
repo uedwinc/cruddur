@@ -1,6 +1,6 @@
 # AWS Cloud Project
 
-![Static Badge](https://img.shields.io/badge/Status-In_Progress-8918F4?style=for-the-badge)
+![Static Badge](https://img.shields.io/badge/Status-In_Progress-8918F4?style=for-the-badge) ![GitHub last commit](https://img.shields.io/github/last-commit/uedwinc/cruddur?display_timestamp=committer&style=for-the-badge)
 
 Application: **Cruddur**
 
