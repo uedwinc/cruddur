@@ -5,4 +5,3 @@ node-modules
 node_modules
 .aws-sam
 build.toml
-tmp/*
