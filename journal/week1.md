@@ -94,6 +94,8 @@ aws cloudformation deploy \
 
 - Make sure to either confirm SNS subscription for billing-alarm on the console or open the mail received for the subscription and confirm.
 
+![sns-subscribe](/images/sns-subscribe.png)
+
 ### 2. Using the CLI
 
 #### Configure budget and notification
