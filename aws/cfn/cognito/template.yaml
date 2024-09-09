@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  - Cognito User Pool
+Resources:
+  # Define the User Pool
+  UserPool:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html
+    # https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPool.html
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting: 
+        RecoveryMechanisms:
+          Name: verified_email
+          Priority: 1
+      AdminCreateUserConfig: 
+        AllowAdminCreateUserOnly: false
+        InviteMessageTemplate:
+          EmailSubject: Your sign-in information
+          EmailMessage: Your username is {username} and temporary password is {####}.
+          SMSMessage: Your username is {username} and temporary password is {####}.
+      AliasAttributes: 
+        - email
+      AutoVerifiedAttributes: 
+        - email
+      DeletionProtection: ACTIVE
+      EmailConfiguration: 
+        EmailSendingAccount: COGNITO_DEFAULT
+      EmailVerificationMessage: Your verification code is {####}.
+      EmailVerificationSubject: Verify your email address
+#      LambdaConfig: 
+#        PostConfirmation: arn:aws:lambda:us-east-1:123456789012:function:MyFunction #Replace
+      MfaConfiguration: OFF
+      Policies: 
+        PasswordPolicy:
+            MinimumLength: 6
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
+            TemporaryPasswordValidityDays: 7
+      Schema:
+#        - Name: "email"
+#          AttributeDataType: "String"
+#          Required: true
+#          Mutable: false
+        - Name: "name"
+          AttributeDataType: "String"
+          Required: false
+          Mutable: true
+        - Name: "preferred_username"
+          AttributeDataType: "String"
+          Required: false
+          Mutable: true
+      UserAttributeUpdateSettings: 
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+#      UsernameAttributes: 
+#        - email
+      UsernameConfiguration: 
+        CaseSensitive: True
+      UserPoolAddOns: 
+        AdvancedSecurityMode: OFF
+      UserPoolName: crd-user-pool
+      UserPoolTags: 
+        Name: cruddur
+      VerificationMessageTemplate: 
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailMessage: Your confirmation code is {####}
+        EmailMessageByLink: Choose this link to {##verify your email##}
+        EmailSubject: Here is your confirmation code
+        EmailSubjectByLink: Here is your confirmation link
+        SmsMessage: Your confirmation code is {####}
+
+  # Define the User Pool App Client
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: cruddur
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+
+Outputs:
+  UserPoolId:
+    Description: "The ID of the Cognito User Pool"
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: "The ID of the Cognito User Pool Client"
+    Value: !Ref UserPoolClient

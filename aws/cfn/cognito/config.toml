@@ -1,0 +1,4 @@
+[deploy]
+bucket = 'crd-cfn-artifacts'
+region = 'us-east-2'
+stack_name = 'CrdCognito'
