@@ -4,7 +4,7 @@ This can either be done on containers individually or multiple containers using 
 
 ## Containerize Individually
 
-1. Containerize Backend
+### 1. Containerize Backend
 
 - Build the Dockerfile (run from /cruddur working directory)
 
@@ -20,7 +20,11 @@ docker run --rm -p 4567:4567 -it -e FRONTEND_URL='*' -e BACKEND_URL='*' -d backe
 
 - Access the backend url link from the ports tab on Gitpod and Confirm on the browser (add `/api/activities/home` endpoint)
 
-2. Containerize Frontend
+> We haven't setup authentication so the backend returns cpgnito error as shown below:
+
+![back](/images/back.png)
+
+### 2. Containerize Frontend
 
 - Go to the frontend directory and run `npm install` (This has already been done. Won't be running this to avoid any unknown package upgrade)
 
@@ -35,4 +39,10 @@ docker build -t frontend-react-js ./frontend-react-js
 ```sh
 docker run -p 3000:3000 -d frontend-react-js
 ```
+
+- Open Gitpod port link in browser:
+
+![front](/images/front.png)
+
+## Containerize using Docker Compose
 
