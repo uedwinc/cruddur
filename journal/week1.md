@@ -51,6 +51,16 @@ tasks:
       cd $THEIA_WORKSPACE_ROOT
 ```
 
+7. Setup Gitpod to use TOML configuration files for CloudFormation
+
+- Use CFN-TOML (https://github.com/teacherseat/cfn-toml) to execute Toml Configuration for Bash scripts using CloudFormation. This allows us to store bash script variables and CloudFormation parameters in a `.toml` file
+
+- Add cfn-toml installation to `.gitpod.yml` file to always run at startup
+
+```sh
+gem install cfn-toml
+```
+
 ## Setup Billing
 
 ### 1. Using CloudFormation
