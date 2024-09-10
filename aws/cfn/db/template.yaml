@@ -97,8 +97,12 @@ Resources:
       PubliclyAccessible: true
       VPCSecurityGroups:
         - !GetAtt RDSPostgresSG.GroupId
-#Outputs:
+Outputs:
 #  ServiceSecurityGroupId:
 #    Value: !GetAtt ServiceSG.GroupId
 #    Export:
 #      Name: !Sub "${AWS::StackName}ServiceSecurityGroupId"
+  RDSPostgresSGId:
+    Value: !GetAtt RDSPostgresSG.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}RDSSG"
