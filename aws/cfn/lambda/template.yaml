@@ -127,3 +127,10 @@ Outputs:
       Fn::GetAtt:
         - LambdaRole
         - Arn
+  
+  LambdaFunctionArn:
+    Value:
+      Fn::GetAtt:
+        - Arn
+    Export:
+      Name: !Sub "${AWS::StackName}Fn"
