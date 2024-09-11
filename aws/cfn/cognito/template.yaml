@@ -28,8 +28,9 @@ Resources:
         EmailSendingAccount: COGNITO_DEFAULT
       EmailVerificationMessage: Your verification code is {####}.
       EmailVerificationSubject: Verify your email address
-#      LambdaConfig: 
-#        PostConfirmation: arn:aws:lambda:us-east-1:123456789012:function:MyFunction #Replace
+      LambdaConfig: 
+        PostConfirmation:
+          - !ImportValue !Sub "${AWS::StackName}Fn"
       MfaConfiguration: OFF
       Policies: 
         PasswordPolicy:
