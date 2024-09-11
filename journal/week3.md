@@ -42,9 +42,21 @@ Extract to a folder, then zip up that folder and upload as a new lambda layer to
 
 Follow the instructions on https://github.com/AbhimanyuHK/aws-psycopg2 to compile your own layer from postgres source libraries for the desired version.
 
-## 2. ## Setup Cognito Post Confirmation Lambda
+## 2. Setup Cognito Post Confirmation Lambda
 
+We need to implement a custom authorizer for cognito. This is necessary because in setting up the user table (seed.sql), it requires a cognito user id. This will help verify a user at sign-up.
 
+1. Create a Lambda function python file, [cruddur-post-confirmation.py](../aws/lambdas/cruddur-post-confirmation.py)
+
+2. Create a CloudFormation lambda [template](../aws/cfn/lambda/template.yaml) to deploy the lambda fuction. 
+
+- Paste the [cruddur-post-confirmation.py](../aws/lambdas/cruddur-post-confirmation.py) code as in-line code in the template. 
+
+- Remember to reference the ARN from the lambda layer setup from the previous section. We used the one for us-east-2 from https://github.com/jetbridge/psycopg2-lambda-layer
+
+- Set variable to 'CONNECTION_URL' and value as the "PROD_CONNECTION_URL" value.
+
+- For VPCConfig, specify the network protocol details in the VPC where RDS was created since that will contain the security group with Postgres port opened.
 
 ## Provision Cognito User Pool
 
