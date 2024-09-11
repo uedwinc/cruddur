@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  - Post Confirmation Lambda
+Resources:
+  LambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+#      RoleName: AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+        # https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html
+        # This is so AWS Lambda can create a network card
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Path: "/"
+
+  PostConfirmationLambdaFunction:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures: 
+        - x86_64
+      Description: Implement a custom authorizer for cognito. This will help verify a user at sign-up.
+      FunctionName: cruddur-post-confirmation
+      Handler: index.lambda_handler
+      Layers: 
+        # https://github.com/jetbridge/psycopg2-lambda-layer
+        - arn:aws:lambda:us-east-2:898466741470:layer:psycopg2-py38:1
+      MemorySize: 256
+      PackageType: Zip
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Runtime: python3.8
+      Environment:
+        Variables:
+          CONNECTION_URL: # ENTER VALUE OR REF
+      Tags: 
+        - Key: Environment
+          Value: Stage
+        - Key: lambda:createdBy
+          Value: SAM
+      Timeout: 30
+      LoggingConfig: 
+          ApplicationLogLevel: TRACE
+          LogFormat: JSON
+          SystemLogLevel: DEBUG
+      TracingConfig: 
+        Mode: Active
+      VpcConfig: 
+        SecurityGroupIds:
+          - !ImportValue !Sub "${AWS::StackName}RDSSG"
+        SubnetIds: 
+          !Split 
+            - ","
+            - !ImportValue !Sub "${NetworkingStackName}PublicSubnetIds"
+      Code: 
+        ZipFile: |
+          import json
+          import psycopg2
+          import os
+
+          def lambda_handler(event, context):
+              user = event['request']['userAttributes']
+              print('userAttributes')
+              print(user)
+
+              user_display_name  = user['name']
+              user_email         = user['email']
+              user_handle        = user['preferred_username']
+              cognito_user_id    = user['sub']
+              try:
+                print('entered-try')
+                sql = f"""
+                  INSERT INTO public.users (
+                    display_name, 
+                    email,
+                    handle, 
+                    cognito_user_id
+                    ) 
+                  VALUES(
+                    %(display_name)s,
+                    %(email)s,
+                    %(handle)s,
+                    %(cognito_user_id)s
+                  )
+                """
+                print('SQL Statement ----')
+                print(sql)
+                conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
+                cur = conn.cursor()
+                params = {
+                  'display_name': user_display_name,
+                  'email': user_email,
+                  'handle': user_handle,
+                  'cognito_user_id': cognito_user_id
+                }
+                cur.execute(sql,params)
+                conn.commit() 
+
+              except (Exception, psycopg2.DatabaseError) as error:
+                print('error:')
+                print(error)
+              finally:
+                if conn is not None:
+                    cur.close()
+                    conn.close()
+                    print('Database connection closed.')
+              return event
+
+Outputs:
+  RoleName:
+    Value: !Ref LambdaRole
+
+  RoleArn:
+    Value:
+      Fn::GetAtt:
+        - LambdaRole
+        - Arn
