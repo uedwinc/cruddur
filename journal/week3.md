@@ -58,5 +58,33 @@ We need to implement a custom authorizer for cognito. This is necessary because 
 
 - For VPCConfig, specify the network protocol details in the VPC where RDS was created since that will contain the security group with Postgres port opened.
 
-## Provision Cognito User Pool
+## 3. Provision Cognito User Pool
+
+- Create a [CloudFormation template](../aws/cfn/cognito/template.yaml) to deploy a Cognito user pool
+
+- Write a [deployment script](../bin/cfn/cognito) for it
+
+- Run the script to deploy Cognito user pool
+
+```sh
+chmod u+x /bin/cfn/cognito
+
+bash /bin/cfn/cognito
+```
+
+- Execute the change-set on the console
+
+### Install AWS Amplify
+
+> This is not necessary as everything has been packaged with the code. If you do these, it may lead to version changes and incompatibility.
+
+- See documentation: https://docs.amplify.aws/react/build-a-backend/auth/
+
+```sh
+cd frontend-react-js
+
+npm i aws-amplify --save
+```
+
+- This adds `aws-amplify` to `package.json` and modifies `package-lock.json`
 
