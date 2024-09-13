@@ -14,11 +14,11 @@
 
 4. Persist the environment variables using:
 
-  ```
-  gp env AWS_ACCESS_KEY_ID="your-access-key-id"
-  gp env AWS_SECRET_ACCESS_KEY="your-secret-access-key"
-  gp env AWS_DEFAULT_REGION="your-region"
-  ```
+```sh
+gp env AWS_ACCESS_KEY_ID="your-access-key-id"
+gp env AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+gp env AWS_DEFAULT_REGION="your-region"
+```
 
 5. Confirm configuration with some basic cli commands:
 
@@ -36,20 +36,7 @@
 
 - See https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html for other cli queries
 
-6. Next, configure gitpod with some startup tasks. Create and update the `.gitpod.yml` file with the following code to install aws-cli:
-
-```
-tasks:
-  - name: aws-cli
-    env:
-      AWS_CLI_AUTO_PROMPT: on-partial
-    before: |
-      cd /workspace
-      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      unzip awscliv2.zip
-      sudo ./aws/install
-      cd $THEIA_WORKSPACE_ROOT
-```
+6. Next, configure gitpod with some startup tasks. These include, installing aws-cli, aws-sam, etc.
 
 7. Setup Gitpod to use TOML configuration files for CloudFormation
 
@@ -139,9 +126,9 @@ aws budgets create-budget \
 
 ```
 aws sns subscribe \
-    --topic-arn TopicARN \
-    --protocol email \
-    --notification-endpoint your@email.com
+  --topic-arn TopicARN \
+  --protocol email \
+  --notification-endpoint your@email.com
 ```
 
 3. You can either confirm subscription for SNS on the Amazon SNS console or open the mail received for the subscription and confirm.
