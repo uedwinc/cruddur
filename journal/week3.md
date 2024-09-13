@@ -88,3 +88,119 @@ npm i aws-amplify --save
 
 - This adds `aws-amplify` to `package.json` and modifies `package-lock.json`
 
+### Configure Amplify
+
+1. We need to hook up our cognito pool to our code in the [App.js](../frontend-react-js/src/App.js) file
+
+```js
+import { Amplify } from 'aws-amplify';
+
+Amplify.configure({
+  "AWS_PROJECT_REGION": process.env.REACT_APP_AWS_PROJECT_REGION,
+  "aws_cognito_region": process.env.REACT_APP_AWS_COGNITO_REGION,
+  "aws_user_pools_id": process.env.REACT_APP_AWS_USER_POOLS_ID,
+  "aws_user_pools_web_client_id": process.env.REACT_APP_CLIENT_ID,
+  "oauth": {},
+  Auth: {
+    // We are not using an Identity Pool
+    // identityPoolId: process.env.REACT_APP_IDENTITY_POOL_ID, // REQUIRED - Amazon Cognito Identity Pool ID
+    region: process.env.REACT_APP_AWS_PROJECT_REGION,           // REQUIRED - Amazon Cognito Region
+    userPoolId: process.env.REACT_APP_AWS_USER_POOLS_ID,         // OPTIONAL - Amazon Cognito User Pool ID
+    userPoolWebClientId: process.env.REACT_APP_CLIENT_ID,   // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
+  }
+});
+```
+
+2. Next, we need to configure the following as environment variables for frontend-react-js in the docker-compose file
+
+```
+REACT_APP_AWS_PROJECT_REGION
+REACT_APP_AWS_COGNITO_REGION
+REACT_APP_AWS_USER_POOLS_ID
+REACT_APP_CLIENT_ID
+```
+
+To do this, we will Create `.env` files to hold our environment variables
+
+- First, we need to store the env variables in `env.erb` files: [backend-flask.env.erb](../erb/backend-flask.env.erb) and [frontend-react-js.env.erb](../erb/frontend-react-js.env.erb)
+
+- Next, we need to create ruby scripts that generate the envs: [/bin/backend/generate-env](../bin/backend/generate-env) and [/bin/frontend/generate-env](../bin/frontend/generate-env)
+
+- When these files are run, they generate a `.env` file. We'll ignore that in `.gitignore`
+
+- Give execute permission to the `generate-env` files
+
+```sh
+chmod u+x /bin/backend/generate-env
+chmod u+x /bin/frontend/generate-env
+```
+- Add commands to generate-env at startup in `.gitpod.yml` file
+
+```sh
+ruby $THEIA_WORKSPACE_ROOT/bin/frontend/generate-env
+
+ruby $THEIA_WORKSPACE_ROOT/bin/backend/generate-env
+```
+
+- In the docker-compose file, reference generated env file path as `env_file`
+
+> Every other form of Cognito implementation (backend and frontend) has been done in the code. Including server side implementation like passing along the access_token, server side verification of the json web token (jwt) generated
+
+For server side verification of the json web token (jwt) generated, we needed to:
+
+- Add `Flask-AWSCognito` to [requirements.txt](../backend-flask/requirements.txt)
+
+- `cd` into `backend-flask` and do `pip install -r requirements.txt`
+
+- From the instructions (https://github.com/cgauge/Flask-AWSCognito), we need to set the following env variables in backend-flask of docker-compose
+
+```yml
+AWS_COGNITO_USER_POOL_ID: "us-east-2_xMATXNbsI"
+AWS_COGNITO_USER_POOL_CLIENT_ID: "6lii3ennqt31pr8a1clgihnmbc"
+```
+
+- So add them to the [backend-flask.env.erb](../erb/backend-flask.env.erb) file
+
+- The instrumentation for jwt verification is through the [cognito_jwt_token.py](../backend-flask/lib/cognito_jwt_token.py) file
+
+- Doc: https://github.com/cgauge/Flask-AWSCognito/blob/master/flask_awscognito/services/token_service.py
+
+---
+
+In Develpment, you can do the following:
+
+- Try to sign in to get an unauthorized (username and password error) error
+
+- You can try to manually create a user on the AWS cognito console (you should get an email from cognito to verify that user) and sign in with the user details
+
+- If it requires force-change-password, you can run this command on the cli to bypass
+```sh
+aws cognito-idp admin-set-user-password --username andrewbrown --password Testing1234! --user-pool-id us-east-2_xMATXNbsI --permanent
+```
+- Try to inspect the crudder homepage after signin to see. Under the `Elements` > `Console` section, you'll see `Attributes`, which should contain your `email`, `email_verified` status, and `sub` value.
+
+- Go to cognito console and manually enter required attributes (name and prefered username). Then refresh cruddur to confirm.
+
+- After confirmation, delete the manually created user from cognito and sign out from cruddur
+
+- Try signing up on cruddur frontend
+
+- This should give you a confirm email page. Also go to cognito userpool under users to see that it is waiting for confirmation.
+
+- Check you email for verification code and confirm. On the cognito console, you will also see that it is confirmed.
+
+- Now, it requires signin after verification so sign-in on cruddur
+
+- Also, test to see if resend verification option works
+
+- Try to use the forget password option at signin
+
+- Check email for password reset code
+
+- Enter reset code and new password. Then proceed to signin.
+
+- Sign into cruddur and view docker-compose backend logs to confirm authentication
+
+- On cruddur, a certain section was added as mockup for only authenticated users and shouldn't be seen when signed out.
+
+---
