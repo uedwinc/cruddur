@@ -7,3 +7,7 @@ printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
 
 NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
 psql $NO_DB_CONNECTION_URL -c "DROP DATABASE IF EXISTS cruddur;"
+
+# We use SED to create a NO_DB_CONNECTION_URL. 
+# This is because CONNECTION_URL authenticates us into the `cruddur` database 
+# and we cannot drop a database that we are in.

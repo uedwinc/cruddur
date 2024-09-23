@@ -13,7 +13,7 @@ INSERT INTO public.schema_information (id, last_successful_run)
 VALUES(1, '0')
 ON CONFLICT (id) DO NOTHING;
 
-
+-- https://www.postgresql.org/docs/current/sql-createtable.html
 CREATE TABLE public.users (
   uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   display_name text NOT NULL,
