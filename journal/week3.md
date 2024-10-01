@@ -203,4 +203,16 @@ aws cognito-idp admin-set-user-password --username andrewbrown --password Testin
 
 - On cruddur, a certain section was added as mockup for only authenticated users and shouldn't be seen when signed out.
 
+- Try sign-up on cruddur
+
+- On the lambda page, under 'Monitor' tab, select 'Logs' and view the cloudwatch logs for the Lambda trigger
+
+- If any errors occur, make sure to delete the user in cognito user pool before retrying while debugging
+
+- On the terminal, connect to the production database: `./bin/db-connect prod`
+
+- Do `SELECT * FROM USERS;` to view the newly created user table. You can do `\x on` for expanded view and run the command again.
+
+- Now, try entering cruds on cruddur and see if it posts
+
 ---
