@@ -105,7 +105,7 @@ aws cloudformation deploy \
 
 4. Run the following command
 
-```
+```sh
 aws budgets create-budget \
   --account-id $AWS_ACCOUNT_ID \
   --budget file://aws/json/budget.json \
@@ -116,15 +116,16 @@ aws budgets create-budget \
 #### Configure CloudWatch Alarm
 
 1. First create an SNS Topic
-  ```
-  aws sns create-topic --name billing-alarm
-  ```
+
+```sh
+aws sns create-topic --name billing-alarm
+```
 
 - This will return a TopicARN
 
 2. Next, we'll create a subscription by supplying the TopicARN and our Email
 
-```
+```sh
 aws sns subscribe \
   --topic-arn TopicARN \
   --protocol email \
