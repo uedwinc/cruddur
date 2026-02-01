@@ -1,0 +1,222 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  The primary DynamoDB Table for the application
+  - DynamoDB Table
+  - Configurable KeySchema (Partition key and optional Sort key)
+  - Optional Streams (e.g., NEW_AND_OLD_IMAGES)
+  - Optional Point-In-Time Recovery (backups)
+  - Optional Table TTL
+  - Server-side encryption
+
+Parameters:
+  TableName:
+    Type: String
+    Description: The name of the DynamoDB table
+    Default: cruddur
+
+  PartitionKeyName:
+    Type: String
+    Description: The attribute name for the partition (hash) key
+    Default: pk
+
+  PartitionKeyType:
+    Type: String
+    Description: The attribute type for the partition key
+    AllowedValues:
+      - S
+      - N
+      - B
+    Default: S
+
+  SortKeyName:
+    Type: String
+    Description: The attribute name for the sort (range) key (leave empty for no sort key)
+    Default: ""
+
+  SortKeyType:
+    Type: String
+    Description: The attribute type for the sort key (used only if SortKeyName is provided)
+    AllowedValues:
+      - S
+      - N
+      - B
+    Default: S
+
+  BillingMode:
+    Type: String
+    Description: PAY_PER_REQUEST (on-demand) or PROVISIONED (RCU/WCU)
+    AllowedValues:
+      - PAY_PER_REQUEST
+      - PROVISIONED
+    Default: PAY_PER_REQUEST
+
+  ReadCapacityUnits:
+    Type: Number
+    Description: Read capacity units (only used if BillingMode is PROVISIONED)
+    Default: 5
+
+  WriteCapacityUnits:
+    Type: Number
+    Description: Write capacity units (only used if BillingMode is PROVISIONED)
+    Default: 5
+
+  PointInTimeRecoveryEnabled:
+    Type: String
+    Description: Enable point-in-time recovery (continuous backups)
+    AllowedValues:
+      - true
+      - false
+    Default: true
+
+  EnableStream:
+    Type: String
+    Description: DynamoDB stream view type (use NONE to disable)
+    AllowedValues:
+      - NEW_IMAGE
+      - OLD_IMAGE
+      - NEW_AND_OLD_IMAGES
+      - KEYS_ONLY
+      - NONE
+    Default: NONE
+
+  TTLAttributeName:
+    Type: String
+    Description: The TTL attribute name (leave empty to disable TTL)
+    Default: ""
+
+  SSEEnabled:
+    Type: String
+    Description: Enable server-side encryption
+    AllowedValues:
+      - true
+      - false
+    Default: true
+
+  KMSMasterKeyId:
+    Type: String
+    Description: KMS key ID or alias for table encryption (use alias/aws/dynamodb for AWS managed key)
+    Default: alias/aws/dynamodb
+
+Conditions:
+  HasSortKey: !Not [!Equals [!Ref SortKeyName, ""]]
+  IsProvisioned: !Equals [!Ref BillingMode, PROVISIONED]
+  HasTTL: !Not [!Equals [!Ref TTLAttributeName, ""]]
+  StreamEnabled: !Not [!Equals [!Ref EnableStream, "NONE"]]
+  SSEOn: !Equals [!Ref SSEEnabled, "true"]
+  PITREnabled: !Equals [!Ref PointInTimeRecoveryEnabled, "true"]
+
+Resources:
+  DynamoDBTable:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+
+      # KeySchema (1 or 2 elements depending on SortKey)
+      # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_KeySchemaElement.html
+      KeySchema:
+        Fn::If:
+          - HasSortKey
+          - 
+            - AttributeName: !Ref PartitionKeyName
+              KeyType: HASH
+            - AttributeName: !Ref SortKeyName
+              KeyType: RANGE
+          - 
+            - AttributeName: !Ref PartitionKeyName
+              KeyType: HASH
+
+      # AttributeDefinitions must include all key attributes
+      # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeDefinition.html
+      AttributeDefinitions:
+        Fn::If:
+          - HasSortKey
+          - 
+            - AttributeName: !Ref PartitionKeyName
+              AttributeType: !Ref PartitionKeyType
+            - AttributeName: !Ref SortKeyName
+              AttributeType: !Ref SortKeyType
+          - 
+            - AttributeName: !Ref PartitionKeyName
+              AttributeType: !Ref PartitionKeyType
+
+      # BillingMode and ProvisionedThroughput
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
+      BillingMode: !Ref BillingMode
+      ProvisionedThroughput:
+        Fn::If:
+          - IsProvisioned
+          - 
+            ReadCapacityUnits: !Ref ReadCapacityUnits
+            WriteCapacityUnits: !Ref WriteCapacityUnits
+          - !Ref AWS::NoValue
+
+      # Point-in-time recovery
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/PointInTimeRecovery.html
+      PointInTimeRecoverySpecification:
+        Fn::If:
+          - PITREnabled
+          - 
+            PointInTimeRecoveryEnabled: true
+          - 
+            PointInTimeRecoveryEnabled: false
+
+      # Server-side encryption (SSE)
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html
+      SSESpecification:
+        Fn::If:
+          - SSEOn
+          - 
+            SSEEnabled: true
+            KMSMasterKeyId: !Ref KMSMasterKeyId
+          - 
+            SSEEnabled: false
+
+      # DynamoDB Streams
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html
+      StreamSpecification:
+        Fn::If:
+          - StreamEnabled
+          - 
+            StreamViewType: !Ref EnableStream
+          - !Ref AWS::NoValue
+
+      # Table TTL (Time to Live)
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html
+      TimeToLiveSpecification:
+        Fn::If:
+          - HasTTL
+          - 
+            AttributeName: !Ref TTLAttributeName
+            Enabled: true
+          - !Ref AWS::NoValue
+
+      # Tags for resource organization
+      Tags:
+        - Key: Project
+          Value: Cruddur
+        - Key: Stack
+          Value: !Ref AWS::StackName
+
+Outputs:
+  TableName:
+    Description: The DynamoDB table name
+    Value: !Ref DynamoDBTable
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableName"
+
+  TableArn:
+    Description: The DynamoDB table ARN
+    Value: !GetAtt DynamoDBTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableArn"
+
+  TableStreamArn:
+    Description: The DynamoDB stream ARN (if enabled)
+    Value:
+      Fn::If:
+        - StreamEnabled
+        - !GetAtt DynamoDBTable.StreamArn
+        - ""
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableStreamArn"

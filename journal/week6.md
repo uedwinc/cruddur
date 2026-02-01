@@ -68,3 +68,20 @@ aws dynamodb scan --table-name Music --query "Items" --endpoint-url http://local
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.CLI.html
 
+## Setup DynamoDB on AWS
+
+### Create an Amazon DynamoDB Table
+
+1. Create a new [CloudFormation template file](../aws/cfn/ddb/template.yaml).
+
+2. Write [a bash script](../bin/cfn/ddb) to run the template
+
+3. Give execute permission and run the script to deploy the resources:
+
+```sh
+chmod u+x /bin/cfn/ddb/template.yaml
+
+./bin/cfn/ddb/template.yaml
+```
+
+4. Execute the change set on the console
