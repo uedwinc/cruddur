@@ -1,0 +1,343 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  DynamoDB messaging table with stream and Lambda trigger for Cruddur
+  - DynamoDB Table (pk/sk keys + GSI for message groups)
+  - DynamoDB Stream (NEW_IMAGE)
+  - Lambda Function (cruddur-messaging-stream) in VPC
+  - IAM Role and policies for Lambda (streams + table access)
+  - VPC Gateway Endpoint for DynamoDB
+
+Parameters:
+  NetworkingStack:
+    Type: String
+    Description: This is our base layer of networking components eg. VPC, Subnets
+    Default: CrdNet
+  ClusterStack:
+    Type: String
+    Description: This is our FargateCluster
+    Default: CrdCluster
+
+  # DynamoDB table settings
+  TableName:
+    Type: String
+    Description: The name of the DynamoDB table
+    Default: cruddur-messages
+  PartitionKeyName:
+    Type: String
+    Description: The attribute name for the partition (hash) key
+    Default: pk
+  PartitionKeyType:
+    Type: String
+    AllowedValues: [S, N, B]
+    Default: S
+  SortKeyName:
+    Type: String
+    Description: The attribute name for the sort (range) key
+    Default: sk
+  SortKeyType:
+    Type: String
+    AllowedValues: [S, N, B]
+    Default: S
+  BillingMode:
+    Type: String
+    Description: PAY_PER_REQUEST (on-demand) or PROVISIONED (RCU/WCU)
+    AllowedValues: [PAY_PER_REQUEST, PROVISIONED]
+    Default: PAY_PER_REQUEST
+  ReadCapacityUnits:
+    Type: Number
+    Description: Read capacity units (only used if BillingMode is PROVISIONED)
+    Default: 5
+  WriteCapacityUnits:
+    Type: Number
+    Description: Write capacity units (only used if BillingMode is PROVISIONED)
+    Default: 5
+  PointInTimeRecoveryEnabled:
+    Type: String
+    AllowedValues: [true, false]
+    Default: true
+  SSEEnabled:
+    Type: String
+    AllowedValues: [true, false]
+    Default: true
+  KMSMasterKeyId:
+    Type: String
+    Description: KMS key ID or alias for table encryption (use alias/aws/dynamodb for AWS managed key)
+    Default: alias/aws/dynamodb
+
+  # GSI used by the Lambda query (IndexName = message-group-sk-index)
+  GSIName:
+    Type: String
+    Description: The name of the global secondary index
+    Default: message-group-sk-index
+  GSIHashKeyName:
+    Type: String
+    Description: GSI Partition Key (matches code: message_group_uuid)
+    Default: message_group_uuid
+  GSIHashKeyType:
+    Type: String
+    AllowedValues: [S, N, B]
+    Default: S
+  GSISortKeyName:
+    Type: String
+    Description: GSI Sort Key (we use the table's sk for ordering)
+    Default: sk
+  GSISortKeyType:
+    Type: String
+    AllowedValues: [S, N, B]
+    Default: S
+
+  # Lambda packaging
+  LambdaFunctionName:
+    Type: String
+    Default: cruddur-messaging-stream
+  LambdaRuntime:
+    Type: String
+    Default: python3.11
+  LambdaArchitecture:
+    Type: String
+    AllowedValues: [x86_64, arm64]
+    Default: x86_64
+  LambdaS3Bucket:
+    Type: String
+    Description: S3 bucket that contains the Lambda deployment package (ZIP)
+  LambdaS3Key:
+    Type: String
+    Description: S3 key (path) to the Lambda ZIP in LambdaS3Bucket
+  LambdaHandler:
+    Type: String
+    Description: The handler (module.function)
+    Default: cruddur-messaging-stream.lambda_handler
+  LambdaBatchSize:
+    Type: Number
+    Description: Batch size for stream trigger
+    Default: 1
+
+  # Lambda VPC config (imported from your networking stacks)
+  VpcId:
+    Type: String
+    Description: VPC ID (imported from NetworkingStack)
+    Default: ""
+  LambdaSubnetIdsCsv:
+    Type: String
+    Description: Comma-delimited list of subnet IDs for Lambda (typically private subnets)
+    Default: ""
+  LambdaSecurityGroupId:
+    Type: String
+    Description: Security Group ID for Lambda (import from ClusterStack or create dedicated)
+    Default: ""
+
+  # VPC Gateway Endpoint for DynamoDB
+  CreateDynamoDBEndpoint:
+    Type: String
+    Description: Whether to create a VPC Gateway Endpoint for DynamoDB
+    AllowedValues: [true, false]
+    Default: true
+  RouteTableIdsCsv:
+    Type: String
+    Description: Comma-delimited list of RouteTable IDs (attach Gateway Endpoint here)
+    Default: ""
+
+Conditions:
+  IsProvisioned: !Equals [!Ref BillingMode, PROVISIONED]
+  PITREnabled: !Equals [!Ref PointInTimeRecoveryEnabled, "true"]
+  SSEOn: !Equals [!Ref SSEEnabled, "true"]
+  UseDDBEndpoint: !Equals [!Ref CreateDynamoDBEndpoint, "true"]
+  HasVpcConfig: !Not [!Equals [!Ref VpcId, ""]]
+
+Resources:
+  # DynamoDB Table with stream and GSI
+  DynamoDBTable:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+      KeySchema:
+        - AttributeName: !Ref PartitionKeyName
+          KeyType: HASH
+        - AttributeName: !Ref SortKeyName
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: !Ref PartitionKeyName
+          AttributeType: !Ref PartitionKeyType
+        - AttributeName: !Ref SortKeyName
+          AttributeType: !Ref SortKeyType
+        - AttributeName: !Ref GSIHashKeyName
+          AttributeType: !Ref GSIHashKeyType
+        - AttributeName: !Ref GSISortKeyName
+          AttributeType: !Ref GSISortKeyType
+      BillingMode: !Ref BillingMode
+      ProvisionedThroughput:
+        Fn::If:
+          - IsProvisioned
+          - { ReadCapacityUnits: !Ref ReadCapacityUnits, WriteCapacityUnits: !Ref WriteCapacityUnits }
+          - !Ref AWS::NoValue
+      PointInTimeRecoverySpecification:
+        Fn::If:
+          - PITREnabled
+          - { PointInTimeRecoveryEnabled: true }
+          - { PointInTimeRecoveryEnabled: false }
+      SSESpecification:
+        Fn::If:
+          - SSEOn
+          - { SSEEnabled: true, KMSMasterKeyId: !Ref KMSMasterKeyId }
+          - { SSEEnabled: false }
+      StreamSpecification:
+        # Enable Streams as NEW_IMAGE to match your console step
+        StreamViewType: NEW_IMAGE
+      GlobalSecondaryIndexes:
+        - IndexName: !Ref GSIName
+          KeySchema:
+            - AttributeName: !Ref GSIHashKeyName
+              KeyType: HASH
+            - AttributeName: !Ref GSISortKeyName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            Fn::If:
+              - IsProvisioned
+              - { ReadCapacityUnits: !Ref ReadCapacityUnits, WriteCapacityUnits: !Ref WriteCapacityUnits }
+              - !Ref AWS::NoValue
+      Tags:
+        - Key: Project
+          Value: Cruddur
+        - Key: Stack
+          Value: !Ref AWS::StackName
+
+  # IAM Role for Lambda
+  MessagingLambdaRole:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-MessagingLambdaRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # CloudWatch Logs; also include VPC access if Lambda runs in VPC
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Fn::If:
+            - HasVpcConfig
+            - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+            - !Ref AWS::NoValue
+        # Stream helper managed policy grants basic DynamoDB stream access
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-MessagingLambdaTableAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Allow query/put/delete on the specific table and index
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:DescribeTable
+              # Table ARN
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+              # Index ARN
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/${GSIName}"
+
+  # Lambda Function
+  MessagingLambda:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Role: !GetAtt MessagingLambdaRole.Arn
+      Runtime: !Ref LambdaRuntime
+      Handler: !Ref LambdaHandler
+      Architectures: [ !Ref LambdaArchitecture ]
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          GSI_NAME: !Ref GSIName
+      VpcConfig:
+        Fn::If:
+          - HasVpcConfig
+          - 
+            SubnetIds: { 'Fn::Split' : [ ',' , !Ref LambdaSubnetIdsCsv ] }
+            SecurityGroupIds: [ !Ref LambdaSecurityGroupId ]
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Project
+          Value: Cruddur
+
+  # Event Source Mapping from DynamoDB Stream to Lambda
+  MessagingLambdaEventSource:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-eventsourcemapping.html
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt DynamoDBTable.StreamArn
+      FunctionName: !Ref MessagingLambda
+      BatchSize: !Ref LambdaBatchSize
+      StartingPosition: LATEST
+      Enabled: true
+
+  # VPC Gateway Endpoint for DynamoDB (optional)
+  DdbGatewayEndpoint:
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
+    Condition: UseDDBEndpoint
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcId: 
+        Fn::If:
+          - HasVpcConfig
+          - !Ref VpcId
+          - !Ref AWS::NoValue
+      RouteTableIds:
+        Fn::If:
+          - HasVpcConfig
+          - { 'Fn::Split' : [ ',' , !Ref RouteTableIdsCsv ] }
+          - !Ref AWS::NoValue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "*"
+            Resource: "*"
+
+Outputs:
+  DynamoDBTableName:
+    Description: The DynamoDB table name
+    Value: !Ref DynamoDBTable
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableName"
+  DynamoDBTableArn:
+    Description: The DynamoDB table ARN
+    Value: !GetAtt DynamoDBTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableArn"
+  DynamoDBStreamArn:
+    Description: The DynamoDB stream ARN
+    Value: !GetAtt DynamoDBTable.StreamArn
+    Export:
+      Name: !Sub "${AWS::StackName}DynamoDBTableStreamArn"
+  MessagingLambdaArn:
+    Description: The Lambda function ARN
+    Value: !GetAtt MessagingLambda.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}MessagingLambdaArn"
+  DynamoDBEndpointId:
+    Condition: UseDDBEndpoint
+    Description: VPC Gateway Endpoint ID for DynamoDB
+    Value: !Ref DdbGatewayEndpoint
+    Export:
+      Name: !Sub "${AWS::StackName}DdbGatewayEndpointId"

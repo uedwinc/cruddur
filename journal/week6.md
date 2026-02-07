@@ -279,3 +279,65 @@ SELECT * FROM users;
 
 - Now, in the message section with the newly added user, try to send a message on cruddur
 
+### Implementation of DynamoDB in Production
+
+- Run schema-load to create table in production
+
+```sh
+./bin/ddb/schema-load prod
+```
+
+**Checklist:**
+> Enable Dynamodb streams
+> Create the DynamoDB VPC Gateway Endpoint
+> Create a Lambda function and set the Lambda to run in the VPC (subnets + security group)
+> Grant the Lambda permissions to read the stream and update/query the table and its GSI
+> Wire the DynamoDB Stream to the Lambda via an event source mapping
+
+- Create [the Cloud Formation file](../aws/cfn/ddb/dynamodb-stream-lambda.yaml)
+
+- Create [the Lambda code file](../aws/cfn/ddb/lambda/cruddur-messaging-stream.py)
+
+> Contents: your function logic, slightly adapted to use environment variables and the default SDK endpoint (no hard-coded endpoint_url). This works with or without a VPC Gateway Endpoint.
+
+- Package the Lambda into a ZIP and upload to S3
+
+  - Create a folder and place [cruddur-messaging-stream.py](../aws/cfn/ddb/lambda/cruddur-messaging-stream.py) there
+  - Name the module to match the handler in the template: handler is cruddur-messaging-stream.lambda_handler, so the file must be cruddur-messaging-stream.py with function lambda_handler.
+  - Zip it
+
+```sh
+# from the folder containing cruddur-messaging-stream.py
+zip cruddur-messaging-stream.zip cruddur-messaging-stream.py
+```
+
+- Upload to an S3 bucket (create one if needed):
+
+```sh
+aws s3 cp cruddur-messaging-stream.zip s3://YOUR_BUCKET_NAME/lambdas/cruddur-messaging-stream.zip
+```
+
+- Prepare parameter values
+  - If your Networking/Cluster stacks already export these, you can optionally hardwire imports instead of parameters
+
+- Deploy the stack
+_WIth AWS CLI_
+
+```sh
+aws cloudformation deploy \
+  --stack-name CrdDdbStream \
+  --template-file cfn-dynamodb-stream-lambda.yml \
+  --parameter-overrides \
+    NetworkingStack=CrdNet \
+    ClusterStack=CrdCluster \
+    TableName=cruddur-messages \
+    LambdaFunctionName=cruddur-messaging-stream \
+    LambdaS3Bucket=YOUR_BUCKET_NAME \
+    LambdaS3Key=lambdas/cruddur-messaging-stream.zip \
+    VpcId=vpc-xxxxxxxx \
+    LambdaSubnetIdsCsv=subnet-aaa,subnet-bbb \
+    LambdaSecurityGroupId=sg-xxxxxxxx \
+    RouteTableIdsCsv=rtb-aaaaaa,rtb-bbbbbb \
+    CreateDynamoDBEndpoint=true
+```
+
