@@ -27,3 +27,8 @@ Projects will include:
 The `/journal` directory contains
 
 - [ ] [Setting Up and Architecture](journal/week1.md)
+- [ ] [App Containerization](journal/week2.md)
+- [ ] [Setup Network Infrastructure](journal/week3.md)
+- [ ] [Setup Database with RDS Postgres](journal/week4.md)
+- [ ] [Decentralized Authentication with Cognito](journal/week5.md)
+- [ ] [DynamoDB and Serverless Caching](journal/week6.md)
