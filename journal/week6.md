@@ -341,3 +341,38 @@ aws cloudformation deploy \
     CreateDynamoDBEndpoint=true
 ```
 
+- Comment out AWS_ENDPOINT_URL in docker-compose file
+
+- Do a compose up and check the frontend cruddur. The homepage should be seed data. Go to 'Messages' tab. This should be enter as we don't have any data yet
+
+- Go to the address bar and add /new/bayko or /new/londo to send a message to bayko. Enter a message and send.
+- If there is an error, try signing in again
+
+- In the Lambda function created, go to 'Monitor' tab and click to view CloudWatch logs in Log streams
+
+- You can also go to DynamoDB > Tables > cruddur-messages > Explore table items to view the database items
+
+### Create and Implement Amazon DynamoDB Table (OPTION B)
+
+#### SAM CFN for DynamoDB, DynamoDB Streams and Lambda
+
+- We will be using AWS SAM for the infrastructure implementation here
+
+- Create the [template](../ddb/template.yaml) and [config](../ddb/config.toml) files
+
+- Add task to install AWS SAM in .gitpod.yml
+https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+
+- Do `sam --version` to confirm
+
+- Create the [lambda function file](../ddb/cruddur-messaging-stream/lambda_function.py)
+
+- Create SAM files for [build](../ddb/build), [package](../ddb/package) and [deploy](../ddb/deploy)
+
+- Give execute permission to all files
+
+- Modify .gitignore to ignore the output of SAM build function including the .aws.sam/ directory
+
+- Now, run the files
+
+- Deploy will create a changeset and require console authorization
