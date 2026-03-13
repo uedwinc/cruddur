@@ -494,7 +494,7 @@ export CRUD_SERVICE_SG=$(aws ec2 describe-security-groups \
 
 > Use this command to generate the skeleton for any cli command specified: `aws cli create-service --generate-cli-skeleton`. Here, create-service is the specified command.
 
-## Create Services
+## Create Services - CLI Option
 
 - Create service file for backend-flask `aws/json/service-backend-flask.json`
 
@@ -523,6 +523,18 @@ aws ecs create-service --cli-input-json file://aws/json/service-frontend-react-j
 - You can debug issues like health-check and others by shelling into the container
 
 - Health-check may take time to show healthy
+
+## Create Task Definition and Services - CloudFormation Option
+
+- Create the following: aws/cfn/service/config.toml.examle, aws/cfn/service/config.toml, aws/cfn/service/template.yaml
+
+- Create the service deployment file: bin/cfn/service
+- Give execute permission to the file
+- Run the file
+
+- While trying to debug service create, make a new file: bin/backend/create-service
+
+- After pointing the load balancer to the appropriate port, run the service deployment script
 
 ## Connection to Container Shell via Sessions Manaager (Fargate)
  
