@@ -33,3 +33,4 @@ The `/journal` directory contains
 - [ ] [Decentralized Authentication with Cognito](journal/week5.md)
 - [ ] [DynamoDB and Serverless Caching](journal/week6.md)
 - [ ] [Deploying Containers (ECS)](journal/week7.md)
+- [ ] [Setup Custom Domain)](journal/week8.md)
