@@ -32,3 +32,4 @@ The `/journal` directory contains
 - [ ] [Setup Database with RDS Postgres](journal/week4.md)
 - [ ] [Decentralized Authentication with Cognito](journal/week5.md)
 - [ ] [DynamoDB and Serverless Caching](journal/week6.md)
+- [ ] [Deploying Containers (ECS)](journal/week7.md)
