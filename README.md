@@ -34,3 +34,4 @@ The `/journal` directory contains
 - [ ] [DynamoDB and Serverless Caching](journal/week6.md)
 - [ ] [Deploying Containers (ECS)](journal/week7.md)
 - [ ] [Setup Custom Domain)](journal/week8.md)
+- [ ] [Secure Flask and Implement Container Insights)](journal/week9.md)
