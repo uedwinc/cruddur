@@ -107,9 +107,14 @@ Using previous commands (for frontend):
 - You can check health-check url and cruddur.com on the browser
 - Sign-in and create cruds. Also check messages section.
 
-
 ## After Cloudformation Task and Service
 - Go to Route53 > Hosted zones > Records > api.cruddur.com and edit route to point to the new load balancer dns. Do the same for cruddur.com record
 
 - On the browser: api.cruddur.com/api/health-check
 
+- You can set DOMAIN_NAME as variable:
+
+```sh
+export DOMAIN_NAME="cruddur.com"
+gp env DOMAIN_NAME="cruddur.com"
+```
