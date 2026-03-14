@@ -36,3 +36,4 @@ The `/journal` directory contains
 - [ ] [Setup Custom Domain)](journal/week8.md)
 - [ ] [Secure Flask and Implement Container Insights)](journal/week9.md)
 - [ ] [Serverless Image Processing)](journal/week10.md)
+- [ ] [CI/CD with CodePipeline, CodeBuild and CodeDeploy)](journal/week11.md)
