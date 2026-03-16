@@ -80,3 +80,23 @@
 
 - You can use any of the specified actions (push, pull request, etc) to trigger the pipeline
 - Confirm everything is fine: Target groups on load balancers, app on browser, ECS, pipeline
+
+**CFN for CICD**
+
+- Create the dir/files: aws/cfn/cicd/template.yaml, aws/cfn/cicd/config.toml
+- Create the artifact bucket manually
+
+- Create a codebuild nested stack dir/file: aws/cfn/cicd/nested/codebuild.yaml
+
+- Create the deployment file: bin/cfn/cicd
+- Give execute permission to the file
+
+- Create a new top level dir called tmp to hold the output of cloudformation package
+
+- Run the deploy script: bin/cfn/cicd
+
+- Confirm changeset on cloudformation
+
+- If successful, go to codepipeline. The first run usually fails because you need to update github connection. 
+- Go to codepipeline > settings > connections. Check the correct connection and click 'update pending connection'
+- Either install app on the correct github account or just connect if you already installed previously
